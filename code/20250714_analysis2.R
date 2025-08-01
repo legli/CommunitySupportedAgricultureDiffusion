@@ -74,7 +74,7 @@ modelLME <- readRDS(file = "data/modelConversion.rda")
 #### Analysis 1: identify farms suitable for conversion to CSA
 
 ## model predictions
-bootnum <- 100
+bootnum <- 1000
 set.seed(9999)
 
 
@@ -124,6 +124,10 @@ dfPrediction <- do.call(rbind,lsPrediction)
 head(dfPrediction)
 nrow(dfPrediction)
 
+mean(aggregate(AnzahlUmstellung~run,dfPrediction,sum)[,2]/sum(dfPredictionBase$Anzahl))
+sd(aggregate(AnzahlUmstellung~run,dfPrediction,sum)[,2]/sum(dfPredictionBase$Anzahl))
+mean(aggregate(AnzahlUmstellung~run,dfPrediction,sum)[,2])
+sd(aggregate(AnzahlUmstellung~run,dfPrediction,sum)[,2])
 
 ## characteristics of suitable farms with respect to economic orientation, farm size and management at national and regional level
 
@@ -207,8 +211,10 @@ table1$ratioUmstellungFlaeche_all <- paste0(table1$ratioUmstellungFlaeche," (",t
 table1$ratioUmstellungFlaecheTotal_all <- paste0(table1$ratioUmstellungFlaecheTotal," (",table1$ratioUmstellungFlaecheTotal_sd,")")
 
 # select relevant columns
+table1$Kategorie <- factor(table1$Kategorie,levels=c("Ackerbaubetrieb","Gartenbaubetrieb","Dauerkulturbetrieb","Futterbaubetrieb","Veredlungsbetrieb","Pflanzenbauverbundbetrieb","Viehhaltungsverbundbetrieb","Pflanzenbau-Viehhaltungsverbundbetrieb",
+                                                     "sehr_klein","klein","mittel","groß","konventionell","teilweise_ökologisch","ökologisch"))
 table1Final <- data.frame(table1[,c("Kategorie","Anzahl_mean","AnzahlUmstellung_mean","Flaeche_mean","FlaecheUmstellung_mean","ratioUmstellung_all","ratioUmstellungFlaeche_all","ratioUmstellungFlaecheTotal_all")])
-
+table1Final <- table1Final[order(table1Final$Kategorie),]
 
 #### Analysis 2:  calculate vegetable self sufficiency 
 
@@ -262,7 +268,7 @@ dfSVGSummary <- data.frame(meanModel= c(mean(dfSVG$AnzahlGemueseTot),(mean(dfSVG
 )
 
 dfSVGSummary$meanModelDifference <- dfSVGSummary$meanModel-dfSVGSummary$meanBaseline
-
+15982.19600+12175.45850-24655.45850 # number of farms already producing vegetables
 dfSVGSummaryModel <- dfSVGSummary[,c("Variable","meanModelDifference","sdModel")]
 names(dfSVGSummaryModel) <- c("Variable","mean","sd")
 dfSVGSummaryModel$scenario <- "model"
@@ -289,7 +295,7 @@ fig2a <- ggplot(dfSVGFinal[dfSVGFinal$Variable%in%c("numberVegetableFarms","numb
   labs(x="", y = "Number")+
   theme_bw() +
   scale_fill_manual(values=c('#E69F00','#999999',"white"),guide="none")+
-  ylim(0,25100)+
+  ylim(0,25200)+
   scale_x_discrete(
     breaks = c("numberVegetableFarms","numberCSA"), 
     labels = c("Vegetable farms","CSA farms"))+
@@ -402,15 +408,15 @@ fig2c <- ggplot(dfSVGScenario, aes(x=xvalue, y=vssMean,colour=scenario)) +
 #### Analysis 3:  vegetable crop diversity
 
 # approximation of overall vegetable crop diversity
-vegetableDiversityCurrent <- weighted.mean(c(3,25),c(0.76,0.24)) # large farms covering 76% of area cultivate 3 crops, other farms 25 
+vegetableDiversityCurrent <- weighted.mean(c(3,25),c(0.76,0.24)) # large farms covering 76% of area cultivate 3 crops, other farms 25 = 8.28
 
 # vegetable crop diversity  for CSAs (based on expert survey)
 vegetableDiversityCSA <- mean(c(60,60,40,51,55,50))
 vegetableDiversityCSASD <- sd(c(60,60,40,51,55,50))
 
 # weighted mean of non-CSA and CSA diversity 
-vegetableDiversityModel <- weighted.mean(c(vegetableDiversityCSA, vegetableDiversityCurrent),c(dfSVGSummary[which(dfSVGSummary$Variable=="areaVegetables"),"meanModelDifference"],vegetableArea2023))
-weighted.mean(c((vegetableDiversityCSA+vegetableDiversityCSASD), vegetableDiversityCurrent),c(dfSVGSummary[which(dfSVGSummary$Variable=="areaVegetables"),"meanModelDifference"],vegetableArea2023))-vegetableDiversityModel
+vegetableDiversityModel <- weighted.mean(c(vegetableDiversityCSA, vegetableDiversityCurrent),c(dfSVGSummary[which(dfSVGSummary$Variable=="areaVegetables"),"meanModelDifference"],vegetableArea2023)) # 18.73498
+weighted.mean(c((vegetableDiversityCSA+vegetableDiversityCSASD), vegetableDiversityCurrent),c(dfSVGSummary[which(dfSVGSummary$Variable=="areaVegetables"),"meanModelDifference"],vegetableArea2023))-vegetableDiversityModel #  1.773105
 
 ##################################### save results
 write.xlsx(table1Final,"results/Table1.xlsx",row.names = F)
